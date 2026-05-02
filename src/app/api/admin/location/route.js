@@ -1,10 +1,17 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { getAdminSessionFromRequest } from '@/lib/admin-auth';
 
 const slugify = (text) => text.toLowerCase().replace(/[\s\W-]+/g, '-').replace(/^-|-$/g, '');
 
 export async function POST(req) {
   try {
+    const session = getAdminSessionFromRequest(req);
+
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { type, name, parentId } = await req.json();
 
     if (!name || !type) {

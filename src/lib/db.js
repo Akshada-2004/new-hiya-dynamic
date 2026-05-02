@@ -349,6 +349,37 @@ async function runFallbackSelect(sql, params) {
     return [[{ total }], []];
   }
 
+  if (
+    normalized.includes('cities.id as cityid') &&
+    normalized.includes('cities.slug as cityslug') &&
+    normalized.includes('states.id as stateid') &&
+    normalized.includes('countries.id as countryid') &&
+    normalized.includes('from cities') &&
+    normalized.includes('join states') &&
+    normalized.includes('join countries') &&
+    normalized.includes('where cities.slug = ? and countries.slug = ? limit 1')
+  ) {
+    const [citySlug, countrySlug] = params;
+    const country = data.countries.find((c) => c.slug === countrySlug);
+    if (!country) return getEmptyResult();
+    const stateIdsInCountry = new Set(
+      data.states
+        .filter((s) => Number(s.country_id) === Number(country.id))
+        .map((s) => s.id)
+    );
+    const city = data.cities.find(
+      (c) => c.slug === citySlug && stateIdsInCountry.has(c.state_id)
+    );
+    if (!city) return getEmptyResult();
+    const state = data.states.find((s) => Number(s.id) === Number(city.state_id));
+    if (!state) return getEmptyResult();
+    return [[{
+      cityId: city.id, cityName: city.name, citySlug: city.slug,
+      stateId: state.id, stateName: state.name, stateSlug: state.slug,
+      countryId: country.id, countryName: country.name, countrySlug: country.slug,
+    }], []];
+  }
+
   throw new Error(`Unsupported local SELECT query: ${sql}`);
 }
 

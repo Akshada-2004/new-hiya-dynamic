@@ -8,6 +8,7 @@ import {
   deleteServicePageBySlug,
   upsertServicePages,
 } from '@/app/services/service-page-store';
+import { requireAdminSession } from '@/lib/admin-auth';
 
 function slugify(text) {
   if (!text) return '';
@@ -140,6 +141,8 @@ function parseLocationCsv(csvText) {
 }
 
 export async function createLocation(prevState, formData) {
+  await requireAdminSession();
+
   const type = getTextValue(formData, 'type');
   const name = getTextValue(formData, 'name');
   const parentId = getTextValue(formData, 'parentId');
@@ -339,6 +342,8 @@ async function createLocationHierarchyRecord(source) {
 }
 
 export async function createLocationHierarchy(prevState, formData) {
+  await requireAdminSession();
+
   const result = await createLocationHierarchyRecord(formData);
 
   if (!result.ok) {
@@ -395,6 +400,8 @@ function buildServiceEntries({
 }
 
 export async function createAdminLocationPage(prevState, formData) {
+  await requireAdminSession();
+
   const result = await createLocationHierarchyRecord(formData);
   const selectedServices = getSelectedServices(formData);
   const selectedPageLevels = getSelectedPageLevels(formData);
@@ -452,6 +459,8 @@ export async function createAdminLocationPage(prevState, formData) {
 }
 
 export async function createAdminLocationPagesFromCsv(prevState, formData) {
+  await requireAdminSession();
+
   const selectedServices = getSelectedServices(formData);
   const selectedPageLevels = getSelectedPageLevels(formData);
   const file = formData.get('csvFile');
@@ -535,6 +544,8 @@ export async function createAdminLocationPagesFromCsv(prevState, formData) {
 }
 
 export async function deleteAdminServicePage(prevState, formData) {
+  await requireAdminSession();
+
   const slug = getTextValue(formData, 'slug');
 
   if (!slug) {
@@ -564,6 +575,8 @@ export async function deleteAdminServicePage(prevState, formData) {
 }
 
 export async function deleteAdminLocationPage(prevState, formData) {
+  await requireAdminSession();
+
   const countrySlug = getTextValue(formData, 'countrySlug');
   const stateSlug = getTextValue(formData, 'stateSlug');
   const citySlug = getTextValue(formData, 'citySlug');

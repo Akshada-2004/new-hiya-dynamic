@@ -10,11 +10,21 @@ import TestimonialSlider from "@/app/components/homePage/TestimonialSlider";
 export default function Home() {
   return (
     <>
-      <HeroSection />
-      <ServiceFinder />
-      <DigitalSolutionsSection />
-      <StatsStrip />
-      <TestimonialSlider />
+      <section id="hero">
+        <HeroSection />
+      </section>
+      <section id="service-finder">
+        <ServiceFinder />
+      </section>
+      <section id="digital-solutions">
+        <DigitalSolutionsSection />
+      </section>
+      <section id="stats-strip">
+        <StatsStrip />
+      </section>
+      <section id="testimonials">
+        <TestimonialSlider />
+      </section>
 
     </>
   );

@@ -118,6 +118,8 @@
 // }
 import Link from 'next/link';
 import db, { getDbStatus } from '@/lib/db';
+import { logoutAdmin } from '@/app/actions/admin-auth-actions';
+import { requireAdminSession } from '@/lib/admin-auth';
 
 async function getAdminCounts() {
   try {
@@ -168,6 +170,7 @@ const navItems = [
 ];
 
 export default async function AdminDashboardLayout({ children }) {
+  await requireAdminSession();
   const counts = await getAdminCounts();
   const dbStatus = getDbStatus();
 
@@ -269,6 +272,14 @@ export default async function AdminDashboardLayout({ children }) {
                     {item.label}
                   </Link>
                 ))}
+                <form action={logoutAdmin}>
+                  <button
+                    type="submit"
+                    className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2 text-sm font-medium text-rose-700 transition hover:border-rose-300 hover:bg-rose-100"
+                  >
+                    Logout
+                  </button>
+                </form>
               </div>
             </div>
           </header>
