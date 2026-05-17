@@ -19,7 +19,7 @@ export default function HeroSection() {
               Welcome To Hiya Digital, Complete Web Solutions for <br />
               <span className="text-[#ca202f] relative">
                 Business Growth in <br />
-                India
+                India.
               </span>
             </h1>
 
