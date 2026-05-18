@@ -1,20 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Globe,
-  MapPin,
+  ArrowRight,
   Building2,
   Briefcase,
-  Search,
-  Shield,
-  Clock3,
-  Star,
-  TrendingUp,
   ChevronDown,
+  Globe,
+  MapPin,
+  Search,
   Sparkles,
-  ArrowRight,
 } from "lucide-react";
 import { SERVICE_OPTIONS } from "@/app/services/service-catalog";
 
@@ -54,7 +50,9 @@ export default function ServiceFinder() {
     setSelectedCity(null);
     setStates([]);
     setCities([]);
+
     if (!country) return;
+
     setLoading((l) => ({ ...l, states: true }));
     fetch(`/api/locations/states?countryId=${country.id}`)
       .then((r) => r.json())
@@ -71,7 +69,9 @@ export default function ServiceFinder() {
     setSelectedState(state);
     setSelectedCity(null);
     setCities([]);
+
     if (!state) return;
+
     setLoading((l) => ({ ...l, cities: true }));
     fetch(`/api/locations/cities?stateId=${state.id}`)
       .then((r) => r.json())
@@ -96,15 +96,21 @@ export default function ServiceFinder() {
 
   function handleSubmit() {
     if (!selectedService || !selectedCountry) return;
-    const svc = selectedService.id;
-    const cSlug = selectedCountry.slug;
+
+    const serviceSlug = selectedService.id;
+    const countrySlug = selectedCountry.slug;
+
     if (selectedState && selectedCity) {
-      router.push(`/${cSlug}-${svc}-in-${selectedCity.slug}`);
-    } else if (selectedState) {
-      router.push(`/${cSlug}-${svc}-in-${selectedState.slug}`);
-    } else {
-      router.push(`/${svc}-in-${cSlug}`);
+      router.push(`/${countrySlug}-${serviceSlug}-in-${selectedCity.slug}`);
+      return;
     }
+
+    if (selectedState) {
+      router.push(`/${countrySlug}-${serviceSlug}-in-${selectedState.slug}`);
+      return;
+    }
+
+    router.push(`/${serviceSlug}-in-${countrySlug}`);
   }
 
   const canSubmit = Boolean(selectedService && selectedCountry);
@@ -113,630 +119,182 @@ export default function ServiceFinder() {
     selectedService && selectedCountry && selectedState && selectedCity
       ? `${selectedService.shortName} in ${selectedCity.name}`
       : selectedService && selectedCountry && selectedState
-      ? `${selectedService.shortName} in ${selectedState.name}`
-      : selectedService && selectedCountry
-      ? `${selectedService.shortName} in ${selectedCountry.name}`
-      : "Select a Location";
+        ? `${selectedService.shortName} in ${selectedState.name}`
+        : selectedService && selectedCountry
+          ? `${selectedService.shortName} in ${selectedCountry.name}`
+          : "Search services";
 
   return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
-
-        .sf-section {
-          font-family: 'DM Sans', sans-serif;
-          background: linear-gradient(145deg, #0a0f1e 0%, #0f1729 40%, #0e1520 100%);
-          position: relative;
-          overflow: hidden;
-          padding: 100px 0 110px;
-        }
-
-        /* Ambient glow orbs */
-        .sf-section::before {
-          content: '';
-          position: absolute;
-          width: 700px;
-          height: 700px;
-          border-radius: 50%;
-          background: radial-gradient(circle, rgba(202,32,47,0.12) 0%, transparent 70%);
-          top: -200px;
-          right: -150px;
-          pointer-events: none;
-        }
-        .sf-section::after {
-          content: '';
-          position: absolute;
-          width: 500px;
-          height: 500px;
-          border-radius: 50%;
-          background: radial-gradient(circle, rgba(100,130,255,0.08) 0%, transparent 70%);
-          bottom: -100px;
-          left: -100px;
-          pointer-events: none;
-        }
-
-        /* Subtle grid texture */
-        .sf-grid-overlay {
-          position: absolute;
-          inset: 0;
-          background-image: 
-            linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
-          background-size: 60px 60px;
-          pointer-events: none;
-        }
-
-        .sf-inner {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 0 32px;
-          position: relative;
-          z-index: 1;
-        }
-
-        /* Badge */
-        .sf-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 20px;
-          border-radius: 100px;
-          border: 1px solid rgba(202,32,47,0.35);
-          background: rgba(202,32,47,0.08);
-          color: #f4737d;
-          font-size: 11px;
-          font-weight: 600;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          backdrop-filter: blur(8px);
-          margin-bottom: 28px;
-        }
-
-        /* Heading */
-        .sf-heading {
-          font-family: 'Playfair Display', Georgia, serif;
-          font-size: clamp(36px, 5vw, 58px);
-          font-weight: 700;
-          color: #f0f2f8;
-          line-height: 1.15;
-          letter-spacing: -0.01em;
-        }
-
-        .sf-heading em {
-          font-style: italic;
-          color: #ca202f;
-          background: linear-gradient(135deg, #e84055, #ca202f);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-
-        .sf-subheading {
-          margin-top: 20px;
-          font-size: 17px;
-          color: rgba(180, 190, 215, 0.75);
-          line-height: 1.7;
-          font-weight: 300;
-          max-width: 560px;
-        }
-
-        .sf-subheading strong {
-          color: rgba(220, 228, 248, 0.95);
-          font-weight: 600;
-        }
-
-        /* Stats row */
-        .sf-stats {
-          display: flex;
-          align-items: center;
-          gap: 36px;
-          margin-top: 40px;
-          flex-wrap: wrap;
-        }
-
-        .sf-stat {
-          display: flex;
-          flex-direction: column;
-          gap: 3px;
-        }
-
-        .sf-stat-value {
-          font-size: 22px;
-          font-weight: 700;
-          color: #f0f2f8;
-          font-family: 'Playfair Display', serif;
-        }
-
-        .sf-stat-label {
-          font-size: 11px;
-          letter-spacing: 0.09em;
-          text-transform: uppercase;
-          color: rgba(180, 190, 215, 0.55);
-          font-weight: 500;
-        }
-
-        .sf-stat-divider {
-          width: 1px;
-          height: 36px;
-          background: rgba(255,255,255,0.08);
-        }
-
-        /* Main card */
-        .sf-card {
-          margin-top: 60px;
-          border-radius: 28px;
-          background: rgba(255,255,255,0.035);
-          border: 1px solid rgba(255,255,255,0.08);
-          backdrop-filter: blur(24px);
-          -webkit-backdrop-filter: blur(24px);
-          overflow: hidden;
-          box-shadow:
-            0 40px 100px rgba(0,0,0,0.45),
-            0 0 0 1px rgba(255,255,255,0.05) inset,
-            0 1px 0 rgba(255,255,255,0.1) inset;
-        }
-
-        /* Card header */
-        .sf-card-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 20px 32px;
-          border-bottom: 1px solid rgba(255,255,255,0.06);
-          background: rgba(255,255,255,0.02);
-          flex-wrap: wrap;
-          gap: 12px;
-        }
-
-        .sf-card-header-left {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          color: rgba(220,228,248,0.9);
-          font-size: 13px;
-          font-weight: 600;
-          letter-spacing: 0.04em;
-        }
-
-        .sf-live-dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          background: #34d399;
-          box-shadow: 0 0 10px rgba(52,211,153,0.8), 0 0 20px rgba(52,211,153,0.35);
-          animation: sf-pulse 2s infinite;
-        }
-
-        @keyframes sf-pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.7; transform: scale(0.85); }
-        }
-
-        .sf-card-header-right {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 12px;
-          color: rgba(180, 190, 215, 0.5);
-          font-weight: 500;
-        }
-
-        /* Dropdowns grid */
-        .sf-dropdowns {
-          padding: 32px;
-          display: grid;
-          grid-template-columns: repeat(4, 1fr) auto;
-          gap: 16px;
-          align-items: stretch;
-        }
-
-        @media (max-width: 1024px) {
-          .sf-dropdowns {
-            grid-template-columns: 1fr 1fr;
-          }
-        }
-        @media (max-width: 600px) {
-          .sf-dropdowns {
-            grid-template-columns: 1fr;
-            padding: 20px;
-          }
-          .sf-inner { padding: 0 20px; }
-          .sf-card-header { padding: 16px 20px; }
-          .sf-card-footer { padding: 16px 20px; }
-        }
-
-        /* Individual dropdown card */
-        .sf-dropdown {
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.07);
-          border-radius: 18px;
-          padding: 18px 20px;
-          display: flex;
-          align-items: center;
-          gap: 14px;
-          transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
-          position: relative;
-        }
-
-        .sf-dropdown:not(.sf-dropdown--disabled):hover {
-          border-color: rgba(202,32,47,0.4);
-          background: rgba(202,32,47,0.05);
-          box-shadow: 0 0 30px rgba(202,32,47,0.08);
-        }
-
-        .sf-dropdown--disabled {
-          opacity: 0.38;
-          cursor: not-allowed;
-        }
-
-        .sf-dropdown-icon {
-          width: 44px;
-          height: 44px;
-          border-radius: 12px;
-          background: linear-gradient(135deg, rgba(202,32,47,0.2), rgba(202,32,47,0.08));
-          border: 1px solid rgba(202,32,47,0.2);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-          color: #e84055;
-        }
-
-        .sf-dropdown-content {
-          flex: 1;
-          min-width: 0;
-          position: relative;
-        }
-
-        .sf-dropdown-label {
-          font-size: 10px;
-          font-weight: 600;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          color: rgba(180, 190, 215, 0.45);
-          margin-bottom: 5px;
-        }
-
-        .sf-dropdown-select-wrap {
-          position: relative;
-          display: flex;
-          align-items: center;
-        }
-
-        .sf-dropdown-select {
-          width: 100%;
-          background: transparent;
-          border: none;
-          outline: none;
-          font-size: 14px;
-          font-weight: 500;
-          color: rgba(220,228,248,0.9);
-          appearance: none;
-          -webkit-appearance: none;
-          cursor: pointer;
-          font-family: 'DM Sans', sans-serif;
-          padding-right: 20px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .sf-dropdown-select:disabled {
-          cursor: not-allowed;
-          color: rgba(180,190,215,0.4);
-        }
-
-        .sf-dropdown-select option {
-          background: #111827;
-          color: #e5e7eb;
-        }
-
-        .sf-chevron {
-          position: absolute;
-          right: 0;
-          top: 50%;
-          transform: translateY(-50%);
-          pointer-events: none;
-          color: rgba(180,190,215,0.35);
-        }
-
-        /* Submit button */
-        .sf-submit {
-          background: linear-gradient(135deg, #e84055 0%, #ca202f 60%, #b01c28 100%);
-          border: none;
-          border-radius: 18px;
-          color: #fff;
-          font-size: 14px;
-          font-weight: 700;
-          font-family: 'DM Sans', sans-serif;
-          letter-spacing: 0.04em;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 10px;
-          padding: 18px 28px;
-          min-width: 130px;
-          box-shadow:
-            0 10px 40px rgba(202,32,47,0.4),
-            0 2px 0 rgba(255,255,255,0.15) inset;
-          transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
-          text-transform: uppercase;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .sf-submit::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
-          opacity: 0;
-          transition: opacity 0.2s ease;
-        }
-
-        .sf-submit:not(:disabled):hover {
-          transform: translateY(-2px);
-          box-shadow: 0 18px 50px rgba(202,32,47,0.5), 0 2px 0 rgba(255,255,255,0.15) inset;
-        }
-
-        .sf-submit:not(:disabled):hover::before {
-          opacity: 1;
-        }
-
-        .sf-submit:not(:disabled):active {
-          transform: translateY(0);
-        }
-
-        .sf-submit:disabled {
-          background: rgba(255,255,255,0.07);
-          box-shadow: none;
-          color: rgba(180,190,215,0.3);
-          cursor: not-allowed;
-        }
-
-        /* Footer */
-        .sf-card-footer {
-          border-top: 1px solid rgba(255,255,255,0.06);
-          padding: 18px 32px;
-          display: flex;
-          align-items: center;
-          flex-wrap: wrap;
-          gap: 12px;
-        }
-
-        .sf-footer-label {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 10px;
-          font-weight: 700;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          color: rgba(180,190,215,0.4);
-        }
-
-        .sf-tag {
-          padding: 6px 14px;
-          border-radius: 100px;
-          border: 1px solid rgba(255,255,255,0.08);
-          background: rgba(255,255,255,0.04);
-          color: rgba(210,218,240,0.65);
-          font-size: 12px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: border-color 0.2s, background 0.2s, color 0.2s;
-        }
-
-        .sf-tag:hover {
-          border-color: rgba(202,32,47,0.4);
-          background: rgba(202,32,47,0.07);
-          color: #f4737d;
-        }
-
-        .sf-footer-meta {
-          margin-left: auto;
-          display: flex;
-          align-items: center;
-          gap: 24px;
-          flex-wrap: wrap;
-        }
-
-        .sf-meta-item {
-          display: flex;
-          align-items: center;
-          gap: 7px;
-          font-size: 12px;
-          font-weight: 500;
-          color: rgba(180,190,215,0.5);
-        }
-
-        .sf-meta-item svg {
-          color: #e84055;
-          opacity: 0.8;
-        }
-
-        /* Divider line */
-        .sf-divider-line {
-          width: 48px;
-          height: 2px;
-          background: linear-gradient(90deg, #ca202f, transparent);
-          margin: 16px 0 24px;
-          border-radius: 2px;
-        }
-      `}</style>
-
-      <section className="sf-section">
-        <div className="sf-grid-overlay" />
-
-        <div className="sf-inner">
-          {/* Badge */}
-          <div style={{ display: "flex", justifyContent: "flex-start" }}>
-            <div className="sf-badge">
-              <Sparkles size={13} />
+    <section className="bg-[#f7f7f7] py-16 lg:py-20">
+      <div className="mx-auto max-w-7xl px-6 lg:px-12">
+        <div className="grid gap-10 lg:grid-cols-[0.85fr_1.35fr] lg:items-center">
+          <div>
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-[#ca202f]/10 px-5 py-2 text-sm font-semibold text-[#ca202f]">
+              <Sparkles size={16} />
               Smart Discovery
+            </div>
+
+            <h2 className="text-[30px] font-bold leading-tight text-slate-900 sm:text-[36px] lg:text-[40px]">
+              Find Expert Services In Your{" "}
+              <span className="text-[#ca202f]">Location</span>
+            </h2>
+
+            <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-600">
+              Select your service and location to open the right local page for
+              your business needs.
+            </p>
+
+            <div className="mt-8 grid max-w-lg grid-cols-3 overflow-hidden rounded-[24px] border border-gray-200 bg-white shadow-sm">
+              <MiniStat value="10K+" label="Clients" />
+              <MiniStat value="250+" label="Cities" />
+              <MiniStat value="24/7" label="Support" />
             </div>
           </div>
 
-          {/* Heading */}
-          <h2 className="sf-heading">
-            Find Expert Services
-            In Your <em>Location</em>
-          </h2>
-
-          <div className="sf-divider-line" />
-
-          <p className="sf-subheading">
-            Connect with <strong>10,000+ verified professionals</strong> across
-            countries worldwide — instantly, reliably, and with full confidence.
-          </p>
-
-          {/* Stats */}
-          {/* <div className="sf-stats">
-            <div className="sf-stat">
-              <span className="sf-stat-value">10K+</span>
-              <span className="sf-stat-label">Professionals</span>
-            </div>
-            <div className="sf-stat-divider" />
-            <div className="sf-stat">
-              <span className="sf-stat-value">180+</span>
-              <span className="sf-stat-label">Countries</span>
-            </div>
-            <div className="sf-stat-divider" />
-            <div className="sf-stat">
-              <span className="sf-stat-value">4.9★</span>
-              <span className="sf-stat-label">Avg. Rating</span>
-            </div>
-          </div> */}
-
-          {/* Main Card */}
-          <div className="sf-card">
-            {/* Card Header */}
-            <div className="sf-card-header">
-              <div className="sf-card-header-left">
-                <span className="sf-live-dot" />
-                Global Service Search
+          <div className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-xl shadow-slate-200/70 sm:p-6 lg:p-8">
+            <div className="mb-6 flex flex-col gap-3 border-b border-gray-100 pb-5 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">
+                  Search by location
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Country required hai; state aur city optional hain.
+                </p>
               </div>
-              <div className="sf-card-header-right">
-                <Globe size={14} />
-                Worldwide Coverage
+              <div className="inline-flex items-center gap-2 self-start rounded-full bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
+                <Globe size={14} className="text-[#ca202f]" />
+                Worldwide coverage
               </div>
             </div>
 
-            {/* Dropdowns */}
-            <div className="sf-dropdowns">
-              <DropdownCard
+            <div className="grid gap-4 md:grid-cols-2">
+              <SelectField
                 icon={<Briefcase size={20} />}
                 label="Service"
                 value={selectedService?.id ?? ""}
                 placeholder="Select service"
                 onChange={handleServiceChange}
-                disabled={false}
-                options={SERVICE_OPTIONS.map((s) => ({
-                  id: s.id,
-                  name: s.shortName,
+                options={SERVICE_OPTIONS.map((service) => ({
+                  id: service.id,
+                  name: service.shortName,
                 }))}
               />
 
-              <DropdownCard
+              <SelectField
                 icon={<Globe size={20} />}
                 label="Country"
                 value={selectedCountry?.id ?? ""}
-                placeholder={loading.countries ? "Loading…" : "Select country"}
+                placeholder={loading.countries ? "Loading..." : "Select country"}
                 onChange={handleCountryChange}
                 disabled={loading.countries}
                 options={countries}
               />
 
-              <DropdownCard
+              <SelectField
                 icon={<MapPin size={20} />}
                 label="State / Region"
                 value={selectedState?.id ?? ""}
-                placeholder={loading.states ? "Loading…" : "Select state"}
+                placeholder={loading.states ? "Loading..." : "Select state"}
                 onChange={handleStateChange}
                 disabled={!selectedCountry || loading.states}
                 options={states}
               />
 
-              <DropdownCard
+              <SelectField
                 icon={<Building2 size={20} />}
                 label="City"
                 value={selectedCity?.id ?? ""}
                 placeholder={
-                  loading.cities ? "Loading…" :
-                  selectedState && !loading.cities && cities.length === 0 ? "No cities available" :
-                  "Select city"
+                  loading.cities
+                    ? "Loading..."
+                    : selectedState && !loading.cities && cities.length === 0
+                      ? "No cities available"
+                      : "Select city"
                 }
                 onChange={handleCityChange}
-                disabled={!selectedState || loading.cities || (!loading.cities && selectedState && cities.length === 0)}
+                disabled={
+                  !selectedState ||
+                  loading.cities ||
+                  (!loading.cities && selectedState && cities.length === 0)
+                }
                 options={cities}
               />
-
-              <button
-                className="sf-submit"
-                onClick={handleSubmit}
-                disabled={!canSubmit}
-              >
-                <Search size={17} />
-                {buttonLabel}
-                <ArrowRight size={15} style={{ opacity: 0.75 }} />
-              </button>
             </div>
 
-            {/* Card Footer */}
-            {/* <div className="sf-card-footer">
-              <div className="sf-footer-label">
-                <TrendingUp size={13} className="text-[#ca202f]" />
-                Popular
-              </div>
-              {["India", "USA", "UK", "UAE", "Canada"].map((t) => (
-                <span key={t} className="sf-tag">{t}</span>
-              ))}
-              <div className="sf-footer-meta">
-                <div className="sf-meta-item">
-                  <Shield size={13} />
-                  Verified Experts
-                </div>
-                <div className="sf-meta-item">
-                  <Clock3 size={13} />
-                  24/7 Support
-                </div>
-                <div className="sf-meta-item">
-                  <Star size={13} />
-                  Trusted Worldwide
-                </div>
-              </div>
-            </div> */}
+            <button
+              className="group mt-6 flex w-full items-center justify-center gap-3 rounded-full bg-[#ca202f] px-6 py-4 text-sm font-semibold text-white shadow-lg shadow-[#ca202f]/20 transition-all hover:bg-[#b51c2b] hover:shadow-xl disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none"
+              onClick={handleSubmit}
+              disabled={!canSubmit}
+            >
+              <Search size={18} />
+              <span className="truncate">{buttonLabel}</span>
+              <ArrowRight
+                size={18}
+                className="transition group-hover:translate-x-1"
+              />
+            </button>
           </div>
         </div>
-      </section>
-    </>
+      </div>
+    </section>
   );
 }
 
-function DropdownCard({ icon, label, value, placeholder, onChange, disabled, options }) {
+function MiniStat({ value, label }) {
   return (
-    <div className={`sf-dropdown${disabled ? " sf-dropdown--disabled" : ""}`}>
-      <div className="sf-dropdown-icon">{icon}</div>
-      <div className="sf-dropdown-content">
-        <p className="sf-dropdown-label">{label}</p>
-        <div className="sf-dropdown-select-wrap">
+    <div className="border-r border-gray-100 px-4 py-4 text-center last:border-r-0">
+      <p className="text-xl font-bold text-slate-900">{value}</p>
+      <p className="mt-1 text-xs font-medium uppercase tracking-wide text-slate-400">
+        {label}
+      </p>
+    </div>
+  );
+}
+
+function SelectField({
+  icon,
+  label,
+  value,
+  placeholder,
+  onChange,
+  disabled = false,
+  options,
+}) {
+  return (
+    <label
+      className={`group flex min-h-[86px] items-center gap-4 rounded-2xl border bg-[#fbfbfb] p-4 transition ${
+        disabled
+          ? "border-gray-100 opacity-60"
+          : "border-gray-200 hover:border-[#ca202f]/40 hover:bg-white hover:shadow-md"
+      }`}
+    >
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#ca202f]/10 text-[#ca202f] transition group-hover:bg-[#ca202f] group-hover:text-white">
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="mb-1 block text-xs font-semibold uppercase tracking-[2px] text-slate-400">
+          {label}
+        </span>
+        <span className="relative block">
           <select
             value={value}
             onChange={onChange}
             disabled={disabled}
-            className="sf-dropdown-select"
+            className="w-full appearance-none bg-transparent pr-7 text-sm font-semibold text-slate-800 outline-none disabled:cursor-not-allowed disabled:text-slate-400"
           >
             <option value="">{placeholder}</option>
-            {options.map((opt) => (
-              <option key={opt.id} value={String(opt.id)}>
-                {opt.name}
+            {options.map((option) => (
+              <option key={option.id} value={String(option.id)}>
+                {option.name}
               </option>
             ))}
           </select>
-          <ChevronDown size={13} className="sf-chevron" />
-        </div>
-      </div>
-    </div>
+          <ChevronDown
+            size={16}
+            className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-slate-400"
+          />
+        </span>
+      </span>
+    </label>
   );
 }

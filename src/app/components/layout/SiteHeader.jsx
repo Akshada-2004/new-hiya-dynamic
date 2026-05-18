@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ArrowRight, Menu, X } from 'lucide-react';
 import { useState } from 'react';
+import Image from "next/image";
+
 
 const navItems = [
   { href: '/',          label: 'Home' },
@@ -20,14 +22,26 @@ export default function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur">
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-5 lg:px-10">
-        <Link href="/" className="inline-flex items-center gap-2.5">
+        {/* <Link href="/" className="inline-flex items-center gap-2.5">
           <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#ca202f] text-base font-bold text-white">
             H
           </span>
           <span className="text-lg font-semibold tracking-tight text-slate-900">
             Hiya Digital
           </span>
-        </Link>
+        </Link> */}
+        <Link href="/" className="inline-flex items-center gap-2.5">
+  <Image
+  
+    src="/images/hiya-logo.png" // public folder me logo rakho
+   
+    width={160}
+    height={50}
+    className="h-10 w-auto object-contain"
+    priority
+  />
+</Link>
+
 
         <nav className="hidden items-center gap-1 md:flex">
           {navItems.map((item) => {
