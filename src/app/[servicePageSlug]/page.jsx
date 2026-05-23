@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { renderSpintax } from "@/lib/spintax";
 import { getServicePageBySlug } from "@/app/services/service-page-store";
 import { SERVICE_OPTIONS, getServiceOptionById } from "@/app/services/service-catalog";
 import {
@@ -56,6 +57,18 @@ function buildCityUrl(countrySlug, serviceId, citySlug) {
   return `/${countrySlug}-${serviceId}-in-${citySlug}`;
 }
 
+function buildSeed(...parts) {
+  return parts.filter(Boolean).join(":");
+}
+
+function getServiceBlurb(service, seed) {
+  return renderSpintax(service.spintaxBlurb ?? service.blurb, {}, seed);
+}
+
+function getSpunCopy(template, values, seed) {
+  return renderSpintax(template, values, seed);
+}
+
 // ─── Metadata ────────────────────────────────────────────────────────────────
 
 export async function generateMetadata({ params }) {
@@ -65,9 +78,21 @@ export async function generateMetadata({ params }) {
   const storePage = await getServicePageBySlug(slug);
   if (storePage) {
     const loc = storePage.cityName ?? storePage.stateName ?? storePage.countryName;
+    const storeService = getServiceOptionById(storePage.serviceId);
+    const serviceBlurb = getSpunCopy(
+      storeService?.spintaxBlurb ??
+        storePage.serviceBlurb ??
+        "{Professional|Trusted|Reliable} [[serviceName]] support for businesses in [[location]].",
+      {
+        serviceName: storePage.serviceName,
+        location: loc,
+      },
+      slug
+    );
+
     return {
       title: `${storePage.serviceName} in ${loc} | Local Experts`,
-      description: storePage.serviceBlurb ?? `Professional ${storePage.serviceName} in ${loc}.`,
+      description: serviceBlurb,
     };
   }
 
@@ -79,25 +104,49 @@ export async function generateMetadata({ params }) {
   if (!service || !country) return { title: "Not Found" };
 
   if (parsed.type === "country") {
+    const seed = buildSeed(service.id, country.countrySlug);
     return {
       title: `${service.name} in ${country.countryName} | Professional Services`,
-      description: `${service.blurb} Find expert ${service.shortName} professionals across ${country.countryName}.`,
+      description: `${getServiceBlurb(service, seed)} ${getSpunCopy(
+        "Find {expert|trusted|skilled} [[serviceName]] professionals across [[location]].",
+        {
+          serviceName: service.shortName,
+          location: country.countryName,
+        },
+        seed
+      )}`,
     };
   }
 
   const state = await getState(parsed.countrySlug, parsed.locationSlug);
   if (state) {
+    const seed = buildSeed(service.id, country.countrySlug, state.stateSlug);
     return {
       title: `${service.name} in ${state.stateName}, ${country.countryName}`,
-      description: `${service.blurb} Expert ${service.shortName} services throughout ${state.stateName}.`,
+      description: `${getServiceBlurb(service, seed)} ${getSpunCopy(
+        "{Expert|Reliable|Professional} [[serviceName]] services throughout [[location]].",
+        {
+          serviceName: service.shortName,
+          location: state.stateName,
+        },
+        seed
+      )}`,
     };
   }
 
   const city = await getCityInCountry(parsed.countrySlug, parsed.locationSlug);
   if (city) {
+    const seed = buildSeed(service.id, city.countrySlug, city.stateSlug, city.citySlug);
     return {
       title: `${service.name} in ${city.cityName}, ${country.countryName} | Local Experts`,
-      description: `${service.blurb} Your trusted local ${service.shortName} experts in ${city.cityName}.`,
+      description: `${getServiceBlurb(service, seed)} ${getSpunCopy(
+        "Your {trusted|local|experienced} [[serviceName]] experts in [[location]].",
+        {
+          serviceName: service.shortName,
+          location: city.cityName,
+        },
+        seed
+      )}`,
     };
   }
 
@@ -258,6 +307,19 @@ function CTASection({ serviceName, locationName }) {
 
 function CountryServicePage({ service, country, states }) {
   const hasStates = states.length > 0;
+  const seed = buildSeed(service.id, country.countrySlug);
+  const heroCopy = `${getServiceBlurb(service, seed)} ${getSpunCopy(
+    "We serve businesses across {every major state and city|key regions and growing markets|local and national markets} in [[location]] with {consistent quality|practical strategy|reliable execution} and local understanding.",
+    { location: country.countryName },
+    seed
+  )}`;
+  const gridIntro = getSpunCopy(
+    "Select a state to explore our [[serviceName]] offerings in {specific cities|local markets|nearby business hubs}.",
+    {
+      serviceName: service.shortName.toLowerCase(),
+    },
+    seed
+  );
 
   return (
     <main className="bg-white text-[#0f172a]">
@@ -282,8 +344,7 @@ function CountryServicePage({ service, country, states }) {
                 <span className="text-[#003985]">in {country.countryName}</span>
               </h1>
               <p className="mt-5 text-lg text-gray-600 max-w-xl">
-                {service.blurb} We serve businesses across every major state and city in{" "}
-                {country.countryName} with consistent quality and local understanding.
+                {heroCopy}
               </p>
               <div className="mt-8 flex gap-4 flex-wrap">
                 <button className="bg-[#ca202f] text-white px-6 py-3 rounded-xl font-semibold hover:opacity-90 transition">
@@ -318,8 +379,7 @@ function CountryServicePage({ service, country, states }) {
             {service.shortName} Services Across {country.countryName}
           </h2>
           <p className="mt-3 text-gray-500 max-w-2xl">
-            Select a state to explore our {service.shortName.toLowerCase()} offerings in specific
-            cities.
+            {gridIntro}
           </p>
           {hasStates ? (
             <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -358,6 +418,23 @@ function CountryServicePage({ service, country, states }) {
 
 function StateServicePage({ service, country, state, cities }) {
   const hasCities = cities.length > 0;
+  const seed = buildSeed(service.id, country.countrySlug, state.stateSlug);
+  const heroCopy = `${getServiceBlurb(service, seed)} ${getSpunCopy(
+    "We deliver {professional|dependable|focused} [[serviceName]] services across {all major cities|important local markets|active business areas} in [[stateName]], [[countryName]].",
+    {
+      serviceName: service.shortName.toLowerCase(),
+      stateName: state.stateName,
+      countryName: country.countryName,
+    },
+    seed
+  )}`;
+  const cityIntro = getSpunCopy(
+    "Select a city for {dedicated|local|experienced} [[serviceName]] experts near you.",
+    {
+      serviceName: service.shortName.toLowerCase(),
+    },
+    seed
+  );
 
   return (
     <main className="bg-white text-[#0f172a]">
@@ -386,8 +463,7 @@ function StateServicePage({ service, country, state, cities }) {
                 <span className="text-[#003985]">in {state.stateName}</span>
               </h1>
               <p className="mt-5 text-lg text-gray-600 max-w-xl">
-                {service.blurb} We deliver professional {service.shortName.toLowerCase()} services
-                across all major cities in {state.stateName}, {country.countryName}.
+                {heroCopy}
               </p>
               <div className="mt-8 flex gap-4 flex-wrap">
                 <button className="bg-[#ca202f] text-white px-6 py-3 rounded-xl font-semibold hover:opacity-90 transition">
@@ -422,7 +498,7 @@ function StateServicePage({ service, country, state, cities }) {
             {service.shortName} Services Across {state.stateName}
           </h2>
           <p className="mt-3 text-gray-500 max-w-2xl">
-            Select a city for dedicated {service.shortName.toLowerCase()} experts near you.
+            {cityIntro}
           </p>
           {hasCities ? (
             <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -470,14 +546,79 @@ function StateServicePage({ service, country, state, cities }) {
 
 function CityServicePage({ service, city }) {
   const locationName = `${city.cityName}, ${city.countryName}`;
+  const seed = buildSeed(service.id, city.countrySlug, city.stateSlug, city.citySlug);
+  const heroCopy = `${getServiceBlurb(service, seed)} ${getSpunCopy(
+    "We help businesses in [[locationName]] with {practical delivery|clear execution|focused digital support}, {clear timelines|smooth communication|structured planning}, and ongoing support.",
+    { locationName },
+    seed
+  )}`;
+  const offerIntro = getSpunCopy(
+    "End-to-end [[serviceName]] services {tailored for|planned around|built for} [[locationName]].",
+    {
+      serviceName: service.shortName.toLowerCase(),
+      locationName,
+    },
+    seed
+  );
 
   const serviceItems = [
-    { title: "Custom Development", icon: <Code />, desc: `Tailored ${service.shortName.toLowerCase()} solutions for businesses in ${city.cityName}.` },
-    { title: "E-commerce Solutions", icon: <ShoppingCart />, desc: "Secure, scalable online stores built for growth." },
-    { title: "UI/UX Design", icon: <Palette />, desc: "Conversion-focused design that keeps users engaged." },
-    { title: "WordPress & CMS", icon: <Layout />, desc: "Flexible content management tailored to your workflow." },
-    { title: "Performance Optimisation", icon: <Zap />, desc: "Fast load times and core web vitals tuned for ranking." },
-    { title: "Ongoing Maintenance", icon: <Wrench />, desc: "Updates, monitoring, and support long after launch." },
+    {
+      title: "Custom Development",
+      icon: <Code />,
+      desc: getSpunCopy(
+        "Tailored [[serviceName]] solutions for {businesses|teams|brands} in [[cityName]].",
+        {
+          serviceName: service.shortName.toLowerCase(),
+          cityName: city.cityName,
+        },
+        buildSeed(seed, "custom-development")
+      ),
+    },
+    {
+      title: "E-commerce Solutions",
+      icon: <ShoppingCart />,
+      desc: getSpunCopy(
+        "{Secure|Scalable|Conversion-ready} online stores built for {growth|sales|long-term performance}.",
+        {},
+        buildSeed(seed, "ecommerce")
+      ),
+    },
+    {
+      title: "UI/UX Design",
+      icon: <Palette />,
+      desc: getSpunCopy(
+        "{Conversion-focused|User-friendly|Clean} design that keeps visitors {engaged|moving|ready to act}.",
+        {},
+        buildSeed(seed, "ux")
+      ),
+    },
+    {
+      title: "WordPress & CMS",
+      icon: <Layout />,
+      desc: getSpunCopy(
+        "Flexible content management {tailored to your workflow|built around your updates|made easy for your team}.",
+        {},
+        buildSeed(seed, "cms")
+      ),
+    },
+    {
+      title: "Performance Optimisation",
+      icon: <Zap />,
+      desc: getSpunCopy(
+        "Fast load times and core web vitals {tuned for ranking|improved for users|planned for better performance}.",
+        {},
+        buildSeed(seed, "performance")
+      ),
+    },
+    {
+      title: "Ongoing Maintenance",
+      icon: <Wrench />,
+      desc: getSpunCopy(
+        "{Updates|Monitoring|Support}, improvements, and maintenance long after launch.",
+        {},
+        buildSeed(seed, "maintenance")
+      ),
+    },
   ];
 
   return (
@@ -511,8 +652,7 @@ function CityServicePage({ service, city }) {
                 <span className="text-[#003985]">in {city.cityName}</span>
               </h1>
               <p className="mt-5 text-lg text-gray-600 max-w-xl">
-                {service.blurb} We help businesses in {locationName} with practical delivery,
-                clear timelines, and ongoing support.
+                {heroCopy}
               </p>
               <div className="mt-8 flex gap-4 flex-wrap">
                 <button className="bg-[#ca202f] text-white px-6 py-3 rounded-xl font-semibold hover:opacity-90 transition">
@@ -547,7 +687,7 @@ function CityServicePage({ service, city }) {
             Comprehensive {service.shortName} Solutions
           </h2>
           <p className="mt-4 text-gray-500 max-w-2xl mx-auto">
-            End-to-end {service.shortName.toLowerCase()} services tailored for {locationName}.
+            {offerIntro}
           </p>
           <div className="grid md:grid-cols-3 gap-8 mt-14">
             {serviceItems.map((item) => (
@@ -634,6 +774,15 @@ function getLocationCopy(page) {
 
 function StoreLandingPage({ page }) {
   const location = getLocationCopy(page);
+  const seed = buildSeed(page.serviceId, page.countrySlug, page.stateSlug, page.citySlug, page.slug);
+  const heroCopy = getSpunCopy(
+    "We build {scalable|modern|high-performance} [[serviceName]] solutions for businesses in [[locationName]]. {Transform|Improve|Upgrade} your digital presence with {practical planning|reliable delivery|focused execution}.",
+    {
+      serviceName: (page.serviceShortName ?? page.serviceName).toLowerCase(),
+      locationName: location.scope,
+    },
+    seed
+  );
 
   return (
     <main className="bg-white text-[#0f172a]">
@@ -650,8 +799,7 @@ function StoreLandingPage({ page }) {
               <span className="text-[#003985]">{location.locationName}</span>
             </h1>
             <p className="mt-6 text-lg text-gray-600 max-w-xl">
-              We build scalable, modern and high-performance solutions for businesses in{" "}
-              {location.scope}. Transform your digital presence today.
+              {heroCopy}
             </p>
             <div className="mt-8 flex gap-4">
               <button className="bg-[#ca202f] text-white px-6 py-3 rounded-xl font-semibold hover:opacity-90">
