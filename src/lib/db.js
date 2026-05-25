@@ -10,18 +10,55 @@ const DEFAULT_DATA = {
   cities: [],
 };
 
-const mysqlConfig = {
-  host: process.env.MYSQL_HOST,
-  user: process.env.MYSQL_USER,
-  password: process.env.MYSQL_PASSWORD ?? '',
-  database: process.env.MYSQL_DATABASE,
-};
-
-const hasMySqlConfig = Boolean(mysqlConfig.host && mysqlConfig.user && mysqlConfig.database);
-
 let pool = null;
-let fallbackReason = hasMySqlConfig ? null : 'MYSQL_CONFIG_MISSING';
+let poolKey = null;
+let fallbackReason = 'MYSQL_CONFIG_MISSING';
 let writeQueue = Promise.resolve();
+
+function getMysqlConfig() {
+  const url = process.env.MYSQL_URL || process.env.DATABASE_URL;
+
+  if (url) {
+    try {
+      const parsed = new URL(url);
+
+      return {
+        host: parsed.hostname,
+        port: parsed.port ? Number(parsed.port) : 3306,
+        user: decodeURIComponent(parsed.username),
+        password: decodeURIComponent(parsed.password),
+        database: parsed.pathname.replace(/^\//, ''),
+      };
+    } catch {
+      fallbackReason = 'MYSQL_URL_INVALID';
+      return null;
+    }
+  }
+
+  const config = {
+    host: process.env.MYSQL_HOST,
+    user: process.env.MYSQL_USER,
+    password: process.env.MYSQL_PASSWORD ?? '',
+    database: process.env.MYSQL_DATABASE,
+    port: process.env.MYSQL_PORT ? Number(process.env.MYSQL_PORT) : undefined,
+  };
+
+  if (!config.host || !config.user || !config.database) {
+    fallbackReason = 'MYSQL_CONFIG_MISSING';
+    return null;
+  }
+
+  return config;
+}
+
+function getPoolKey(config) {
+  return [
+    config.host,
+    config.port ?? '',
+    config.user,
+    config.database,
+  ].join('|');
+}
 
 function normalizeSql(sql) {
   return sql.replace(/\s+/g, ' ').trim().toLowerCase();
@@ -63,17 +100,22 @@ async function updateData(updater) {
 }
 
 function createPool() {
-  if (!hasMySqlConfig) {
+  const mysqlConfig = getMysqlConfig();
+
+  if (!mysqlConfig) {
     return null;
   }
 
-  if (!pool) {
+  const nextPoolKey = getPoolKey(mysqlConfig);
+
+  if (!pool || poolKey !== nextPoolKey) {
     pool = mysql.createPool({
       ...mysqlConfig,
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0,
     });
+    poolKey = nextPoolKey;
   }
 
   return pool;
@@ -496,7 +538,9 @@ async function runWithMySql(method, sql, params = []) {
 }
 
 export function getDbStatus() {
-  if (fallbackReason) {
+  const hasMySqlConfig = Boolean(getMysqlConfig());
+
+  if (!hasMySqlConfig) {
     return {
       mode: 'local-json',
       detail: fallbackReason,
@@ -504,8 +548,8 @@ export function getDbStatus() {
   }
 
   return {
-    mode: hasMySqlConfig ? 'mysql' : 'local-json',
-    detail: hasMySqlConfig ? 'MYSQL_CONNECTED' : 'MYSQL_CONFIG_MISSING',
+    mode: fallbackReason ? 'local-json' : 'mysql',
+    detail: fallbackReason || 'MYSQL_CONNECTED',
   };
 }
 

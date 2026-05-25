@@ -64,12 +64,12 @@ async function main() {
     host:     process.env.MYSQL_HOST     || 'localhost',
     user:     process.env.MYSQL_USER     || 'root',
     password: process.env.MYSQL_PASSWORD || '',
-    database: process.env.MYSQL_DATABASE || 'global',
+    database: process.env.MYSQL_DATABASE || 'hiya',
     multipleStatements: true,
     charset: 'utf8mb4',
   });
 
-  console.log('Connected to MySQL  (%s/%s)', process.env.MYSQL_HOST || 'localhost', process.env.MYSQL_DATABASE || 'global');
+  console.log('Connected to MySQL  (%s/%s)', process.env.MYSQL_HOST || 'localhost', process.env.MYSQL_DATABASE || 'hiya');
 
   // ── Create tables ─────────────────────────────────────────────────────────
   await conn.query(`
